@@ -2,6 +2,11 @@ from http.server import BaseHTTPRequestHandler
 import json
 import logging
 import os
+import socket
+import unicodedata
+from urllib.error import HTTPError, URLError
+from urllib.parse import urlencode
+from urllib.request import Request, urlopen
 
 from dotenv import load_dotenv
 from google import genai
@@ -11,6 +16,9 @@ from google.genai import errors, types
 load_dotenv()
 
 MODEL_NAME = "gemini-3.6-flash"
+MOVIE_DATA_BASE_URL = "https://api.movieofthenight.com/v4"
+MOVIE_DATA_REGION = "kr"
+MOVIE_DATA_TIMEOUT_SECONDS = 10
 ALLOWED_VISUAL_MOODS = {
     "immersive",
     "warm",
@@ -80,6 +88,18 @@ class GeminiResponseError(Exception):
 
 class ServerConfigurationError(Exception):
     """서버 환경변수 등 필수 설정이 빠진 경우."""
+
+
+class MovieDataConfigurationError(Exception):
+    """Movie of the Night API 설정이 빠진 경우."""
+
+
+class MovieDataAPIError(Exception):
+    """Movie of the Night API 호출 또는 응답 처리가 실패한 경우."""
+
+
+class MovieDataNotFoundError(Exception):
+    """추천 영화와 일치하는 Movie of the Night 작품을 확정하지 못한 경우."""
 
 
 def _build_recommendation_prompt(user_input):
@@ -205,6 +225,202 @@ def generate_movie_recommendations(user_input, client=None):
     raise GeminiResponseError from last_validation_error
 
 
+def _normalize_movie_title(title):
+    if not isinstance(title, str):
+        return ""
+    normalized = unicodedata.normalize("NFKC", title).casefold()
+    return "".join(character for character in normalized if character.isalnum())
+
+
+def _search_movie_data(title, api_key):
+    query = urlencode(
+        {
+            "title": title,
+            "show_type": "movie",
+            "country": MOVIE_DATA_REGION,
+        }
+    )
+    request = Request(
+        f"{MOVIE_DATA_BASE_URL}/shows/search/title?{query}",
+        headers={"X-API-Key": api_key, "Accept": "application/json"},
+    )
+
+    try:
+        with urlopen(request, timeout=MOVIE_DATA_TIMEOUT_SECONDS) as response:
+            payload = json.load(response)
+    except HTTPError as exc:
+        logging.error("Movie data API HTTP error: status=%s", exc.code)
+        raise MovieDataAPIError from exc
+    except (URLError, TimeoutError, socket.timeout) as exc:
+        logging.error("Movie data API network error: %s", type(exc).__name__)
+        raise MovieDataAPIError from exc
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        logging.error("Movie data API returned invalid JSON: %s", type(exc).__name__)
+        raise MovieDataAPIError from exc
+
+    if not isinstance(payload, list):
+        logging.error("Movie data API returned an unexpected response type")
+        raise MovieDataAPIError
+
+    return [candidate for candidate in payload if isinstance(candidate, dict)]
+
+
+def _select_movie_match(movie, candidates):
+    expected_titles = {
+        normalized
+        for normalized in (
+            _normalize_movie_title(movie.get("title")),
+            _normalize_movie_title(movie.get("original_title")),
+        )
+        if normalized
+    }
+    expected_year = movie.get("release_year")
+
+    title_matches = []
+    title_and_year_matches = []
+    for candidate in candidates:
+        candidate_titles = {
+            normalized
+            for normalized in (
+                _normalize_movie_title(candidate.get("title")),
+                _normalize_movie_title(candidate.get("originalTitle")),
+            )
+            if normalized
+        }
+        if not expected_titles.intersection(candidate_titles):
+            continue
+
+        title_matches.append(candidate)
+        if candidate.get("releaseYear") == expected_year:
+            title_and_year_matches.append(candidate)
+
+    if len(title_and_year_matches) == 1:
+        return title_and_year_matches[0]
+    if len(title_and_year_matches) > 1:
+        return None
+    if len(title_matches) == 1:
+        return title_matches[0]
+    return None
+
+
+def _find_movie_match(movie, api_key):
+    searched_titles = set()
+    for field in ("title", "original_title"):
+        search_title = movie.get(field)
+        normalized_search_title = _normalize_movie_title(search_title)
+        if not normalized_search_title or normalized_search_title in searched_titles:
+            continue
+        searched_titles.add(normalized_search_title)
+
+        candidates = _search_movie_data(search_title, api_key)
+        match = _select_movie_match(movie, candidates)
+        if match is not None:
+            return match
+
+    logging.warning("Movie data match not found for title=%s", movie.get("title"))
+    raise MovieDataNotFoundError
+
+
+def _extract_poster_url(show):
+    image_set = show.get("imageSet")
+    if not isinstance(image_set, dict):
+        return None
+    vertical_poster = image_set.get("verticalPoster")
+    if not isinstance(vertical_poster, dict):
+        return None
+    for size in ("w360", "w480", "w240", "w600", "w720"):
+        url = vertical_poster.get(size)
+        if isinstance(url, str) and url.strip():
+            return url
+    return None
+
+
+def _extract_genres(show):
+    genres = show.get("genres")
+    if not isinstance(genres, list):
+        return []
+    return [
+        genre["name"].strip()
+        for genre in genres
+        if isinstance(genre, dict)
+        and isinstance(genre.get("name"), str)
+        and genre["name"].strip()
+    ]
+
+
+def _extract_watch_providers(show):
+    streaming_options = show.get("streamingOptions")
+    if not isinstance(streaming_options, dict):
+        return []
+    korean_options = streaming_options.get(MOVIE_DATA_REGION)
+    if not isinstance(korean_options, list):
+        return []
+
+    providers = []
+    seen_options = set()
+    for option in korean_options:
+        if not isinstance(option, dict):
+            continue
+        service = option.get("service")
+        if not isinstance(service, dict):
+            continue
+
+        name = service.get("name")
+        option_type = option.get("type")
+        link = option.get("link")
+        if not all(isinstance(value, str) and value.strip() for value in (name, option_type, link)):
+            continue
+
+        deduplication_key = (service.get("id") or name, option_type)
+        if deduplication_key in seen_options:
+            continue
+        seen_options.add(deduplication_key)
+        providers.append(
+            {
+                "name": name.strip(),
+                "type": option_type.strip(),
+                "link": link.strip(),
+            }
+        )
+
+    return providers
+
+
+def _enrich_movie(movie, show):
+    release_year = show.get("releaseYear")
+    if not isinstance(release_year, int) or isinstance(release_year, bool):
+        raise MovieDataNotFoundError
+
+    motn_id = show.get("id")
+    if not isinstance(motn_id, str) or not motn_id.strip():
+        raise MovieDataNotFoundError
+
+    enriched = dict(movie)
+    enriched.update(
+        {
+            "motn_id": motn_id,
+            "release_year": release_year,
+            "genres": _extract_genres(show),
+            "poster_url": _extract_poster_url(show),
+            "overview": show.get("overview") if isinstance(show.get("overview"), str) else "",
+            "watch_providers": _extract_watch_providers(show),
+        }
+    )
+    return enriched
+
+
+def enrich_movie_recommendations(recommendations):
+    api_key = os.getenv("MOVIE_OF_THE_NIGHT_API_KEY")
+    if not api_key:
+        raise MovieDataConfigurationError
+
+    enriched_recommendations = []
+    for movie in recommendations:
+        show = _find_movie_match(movie, api_key)
+        enriched_recommendations.append(_enrich_movie(movie, show))
+    return enriched_recommendations
+
+
 class handler(BaseHTTPRequestHandler):
     """영화 추천을 제공하는 Vercel Python Serverless Function."""
 
@@ -300,12 +516,46 @@ class handler(BaseHTTPRequestHandler):
             )
             return
 
+        try:
+            recommendations = enrich_movie_recommendations(recommendations)
+        except MovieDataConfigurationError as exc:
+            logging.error("Movie data configuration error: %s", type(exc).__name__)
+            self._send_error_json(
+                500,
+                "MOVIE_DATA_CONFIG_ERROR",
+                "영화 정보 서비스를 준비하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+            )
+            return
+        except MovieDataAPIError:
+            self._send_error_json(
+                502,
+                "MOVIE_DATA_API_ERROR",
+                "영화 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.",
+            )
+            return
+        except MovieDataNotFoundError:
+            self._send_error_json(
+                502,
+                "MOVIE_DATA_NOT_FOUND",
+                "영화 정보를 확인하지 못했습니다. 다시 추천을 요청해 주세요.",
+            )
+            return
+        except Exception as exc:
+            logging.exception("Unexpected movie enrichment error: %s", type(exc).__name__)
+            self._send_error_json(
+                500,
+                "INTERNAL_SERVER_ERROR",
+                "서버 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.",
+            )
+            return
+
         self._send_json(
             200,
             {
                 "ok": True,
                 "message": "영화 추천이 완료되었습니다.",
                 "recommendations": recommendations,
+                "meta": {"region": "KR", "count": len(recommendations)},
             },
         )
 
