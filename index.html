@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="기분과 취향에 맞는 영화를 발견하는 AI 영화 추천 서비스" />
+    <title>오늘 뭐 볼까? | AI 영화 추천</title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <script src="/js/app.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">본문 바로가기</a>
+    <header class="site-header">
+      <nav class="nav container" aria-label="주요 메뉴">
+        <a class="brand" href="#home" aria-label="오늘 뭐 볼까? 홈">
+          <span class="brand-mark" aria-hidden="true">▶</span>
+          오늘 뭐 볼까?
+        </a>
+        <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-menu">
+          <span class="sr-only">메뉴 열기</span>
+          <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-menu" id="nav-menu">
+          <li><a href="#home">홈</a></li>
+          <li><a href="#about">서비스 소개</a></li>
+          <li><a href="#recommend">AI 추천</a></li>
+          <li><a href="#faq">FAQ</a></li>
+        </ul>
+      </nav>
+    </header>
+
+    <main id="main">
+      <section class="hero" id="home">
+        <div class="hero-glow" aria-hidden="true"></div>
+        <div class="container hero-content">
+          <p class="eyebrow">YOUR PERSONAL CINEMA GUIDE</p>
+          <h1>오늘 뭐 볼까?</h1>
+          <p class="hero-copy">지금의 기분과 취향을 들려주세요.<br />당신의 오늘에 꼭 맞는 영화를 찾아드릴게요.</p>
+          <a class="button button-primary" href="#recommend">추천 시작하기 <span aria-hidden="true">→</span></a>
+        </div>
+      </section>
+
+      <section class="section" id="about">
+        <div class="container">
+          <div class="section-heading">
+            <p class="eyebrow">WHY THIS CINEMA?</p>
+            <h2>영화를 고르는 시간도<br />즐거워질 수 있도록</h2>
+          </div>
+          <div class="value-grid">
+            <article class="value-card"><span class="card-number">01</span><h3>AI 맞춤 추천</h3><p>기분, 장르, 동행과 관심사를 함께 살펴 지금의 당신에게 맞는 작품을 제안합니다.</p></article>
+            <article class="value-card"><span class="card-number">02</span><h3>대한민국 OTT 정보</h3><p>국내에서 시청 가능한 OTT 정보를 기준으로 어디서 볼 수 있는지 안내합니다.</p></article>
+            <article class="value-card"><span class="card-number">03</span><h3>안심하고 미리 보기</h3><p>예고편과 스포일러 없는 줄거리로 감상의 설렘은 그대로 남겨둡니다.</p></article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section recommendation" id="recommend">
+        <div class="container recommendation-layout">
+          <div class="recommendation-intro">
+            <p class="eyebrow">NOW SHOWING FOR YOU</p>
+            <h2>당신의 오늘을<br />한 장의 티켓에</h2>
+            <p>몇 가지 질문에 답하면 취향을 조합해 세 편의 영화를 추천해 드릴 예정입니다.</p>
+            <div class="ticket-stub" aria-hidden="true"><span>ADMIT ONE</span><strong>MOVIE NIGHT</strong><small>SEAT: YOURS</small></div>
+          </div>
+
+          <form class="recommend-form" id="recommend-form" novalidate>
+            <div class="form-grid">
+              <label class="field"><span>현재 기분 <b aria-hidden="true">*</b></span><select name="mood" required><option value="">기분을 골라주세요</option><option>설레요</option><option>지쳤어요</option><option>울고 싶어요</option><option>신나요</option><option>편안해요</option></select></label>
+              <label class="field"><span>선호 장르 <b aria-hidden="true">*</b></span><select name="genre" required><option value="">장르를 골라주세요</option><option>드라마</option><option>코미디</option><option>로맨스</option><option>액션</option><option>스릴러</option><option>SF·판타지</option><option>애니메이션</option></select></label>
+              <label class="field"><span>함께 보는 사람</span><select name="company"><option>혼자</option><option>연인과</option><option>친구와</option><option>가족과</option><option>아이와</option></select></label>
+              <label class="field"><span>원하는 분위기</span><select name="tone"><option>가볍고 유쾌한</option><option>따뜻하고 잔잔한</option><option>긴장감 넘치는</option><option>몰입감 강한</option><option>생각할 거리가 있는</option></select></label>
+              <label class="field field-wide"><span>최근 관심사</span><textarea name="interests" rows="4" placeholder="예: 여행을 준비 중이고, 새로운 시작에 관한 이야기가 보고 싶어요."></textarea></label>
+              <label class="field"><span>MBTI <small>(선택)</small></span><select name="mbti"><option value="">선택하지 않음</option><option>ISTJ</option><option>ISFJ</option><option>INFJ</option><option>INTJ</option><option>ISTP</option><option>ISFP</option><option>INFP</option><option>INTP</option><option>ESTP</option><option>ESFP</option><option>ENFP</option><option>ENTP</option><option>ESTJ</option><option>ESFJ</option><option>ENFJ</option><option>ENTJ</option></select></label>
+              <label class="checkbox-field"><input type="checkbox" name="include_trending" /><span>최신 화제작도 추천에 포함해 주세요</span></label>
+            </div>
+            <p class="form-message error-message" id="error-message" role="alert" hidden></p>
+            <p class="form-message loading-message" id="loading-message" role="status" hidden>취향 티켓을 준비하고 있어요…</p>
+            <button class="button button-primary submit-button" type="submit">추천받기 <span aria-hidden="true">✦</span></button>
+          </form>
+        </div>
+      </section>
+
+      <section class="section results" id="results" aria-labelledby="results-title">
+        <div class="container">
+          <div class="section-heading horizontal"><div><p class="eyebrow">YOUR TICKETS</p><h2 id="results-title">오늘의 추천작</h2></div><p>추천 결과는 이곳에 영화 티켓 형태로 표시됩니다.</p></div>
+          <div class="result-container" id="result-container" aria-live="polite">
+            <p class="empty-state"><span aria-hidden="true">🎟</span> 아직 발권된 추천 티켓이 없어요.<br /><small>위 질문에 답하고 추천받기 버튼을 눌러주세요.</small></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section faq" id="faq">
+        <div class="container faq-layout">
+          <div class="section-heading"><p class="eyebrow">HELP DESK</p><h2>자주 묻는 질문</h2></div>
+          <div class="faq-list">
+            <details><summary>어떤 기준으로 영화를 추천하나요?<span>+</span></summary><p>입력한 기분, 선호 장르, 함께 보는 사람, 분위기와 최근 관심사를 종합해 어울리는 작품을 고릅니다.</p></details>
+            <details><summary>OTT 정보는 어떤 기준인가요?<span>+</span></summary><p>대한민국에서 공식 제공되는 OTT 시청 정보를 기준으로 안내할 예정이며, 실제 제공 여부는 시점에 따라 달라질 수 있습니다.</p></details>
+            <details><summary>MBTI는 추천에 어떻게 반영되나요?<span>+</span></summary><p>MBTI는 작품의 분위기와 이야기 성향을 고르는 보조 정보로만 사용하며, 선택하지 않아도 추천받을 수 있습니다.</p></details>
+            <details><summary>다시 추천받을 수 있나요?<span>+</span></summary><p>네. 입력 조건을 바꾸거나 같은 조건으로 다시 요청해 새로운 추천 목록을 받아볼 수 있도록 구현할 예정입니다.</p></details>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer"><div class="container footer-inner"><a class="brand" href="#home"><span class="brand-mark" aria-hidden="true">▶</span>오늘 뭐 볼까?</a><p>HTML · CSS · JavaScript · Vercel Python Functions</p><small>© 2026 오늘 뭐 볼까?</small></div></footer>
+  </body>
+</html>
