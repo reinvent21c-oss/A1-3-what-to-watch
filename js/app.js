@@ -3,6 +3,8 @@ const navMenu = document.querySelector('.nav-menu');
 const form = document.querySelector('#recommend-form');
 const errorMessage = document.querySelector('#error-message');
 const loadingMessage = document.querySelector('#loading-message');
+const submitButton = form.querySelector('button[type="submit"]');
+const resultContainer = document.querySelector('#result-container');
 
 navToggle.addEventListener('click', () => {
   const isOpen = navToggle.getAttribute('aria-expanded') === 'true';
@@ -17,7 +19,7 @@ navMenu.addEventListener('click', (event) => {
   }
 });
 
-form.addEventListener('submit', (event) => {
+form.addEventListener('submit', async (event) => {
   event.preventDefault();
   errorMessage.hidden = true;
   loadingMessage.hidden = true;
@@ -29,10 +31,56 @@ form.addEventListener('submit', (event) => {
     return;
   }
 
-  loadingMessage.textContent = '입력 준비가 완료되었습니다. 실제 추천 API는 다음 단계에서 연결됩니다.';
-  loadingMessage.hidden = false;
-  document.querySelector('#results').scrollIntoView({ behavior: 'smooth' });
+  const formData = new FormData(form);
+  const genre = formData.get('genre');
+  const requestData = {
+    mood: formData.get('mood'),
+    genres: genre ? [genre] : [],
+    companion: formData.get('company'),
+    atmosphere: formData.get('tone'),
+    interest: formData.get('interests'),
+    mbti: formData.get('mbti'),
+    include_trending: formData.get('include_trending') === 'on',
+  };
 
-  // 다음 단계에서 아래와 같은 형태로 API를 연결합니다.
-  // fetch('/api/recommend', { method: 'POST', body: JSON.stringify(Object.fromEntries(new FormData(form))) })
+  loadingMessage.textContent = '추천 요청을 보내고 있습니다...';
+  loadingMessage.hidden = false;
+  submitButton.disabled = true;
+  form.setAttribute('aria-busy', 'true');
+
+  try {
+    const response = await fetch('/api/recommend', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestData),
+    });
+
+    let data;
+    try {
+      data = await response.json();
+    } catch {
+      throw new Error('서버 응답을 확인할 수 없습니다. 잠시 후 다시 시도해 주세요.');
+    }
+
+    if (!response.ok || !data.ok) {
+      throw new Error(data.message || '추천 요청을 처리하지 못했습니다.');
+    }
+
+    const successMessage = document.createElement('p');
+    successMessage.className = 'empty-state';
+    successMessage.textContent = '추천 요청이 정상적으로 처리되었습니다.';
+    resultContainer.replaceChildren(successMessage);
+    document.querySelector('#results').scrollIntoView({ behavior: 'smooth' });
+  } catch (error) {
+    errorMessage.textContent = error instanceof TypeError
+      ? '서버에 연결할 수 없습니다. 인터넷 연결을 확인한 뒤 다시 시도해 주세요.'
+      : error.message || '추천 요청 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.';
+    errorMessage.hidden = false;
+  } finally {
+    loadingMessage.hidden = true;
+    submitButton.disabled = false;
+    form.removeAttribute('aria-busy');
+  }
 });
