@@ -70,15 +70,16 @@ textarea { resize:vertical; }
 .result-success { margin:0 0 22px; color:#c7c3bb; font-size:14px; }
 .ticket-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:24px; align-items:stretch; }
 .movie-ticket { position:relative; min-width:0; overflow:hidden; color:var(--ink); background:var(--paper); border:1px solid #bcb099; box-shadow:10px 12px 0 rgba(64,30,26,.72); }
-.ticket-header { min-height:44px; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 15px; color:#2b2925; border-bottom:1px solid #bcb099; font-family:"IBM Plex Mono",monospace; }
-.ticket-number { color:#9d342d; font-size:12px; font-weight:600; letter-spacing:.14em; }
-.ticket-score { margin:0; font-size:10px; letter-spacing:.08em; }
-.ticket-score strong { color:#a92f28; font-size:17px; }
+.ticket-header { min-height:60px; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 15px; color:#f4ead8; background:#63272a; border-bottom:1px solid #3f1518; font-family:"IBM Plex Mono",monospace; }
+.ticket-number { color:#f7e5c7; font-size:11px; font-weight:600; letter-spacing:.11em; }
+.ticket-score { display:flex; align-items:flex-end; flex-direction:column; margin:0; line-height:1.1; }
+.ticket-score-label { color:#dfc8b0; font-family:"Noto Sans KR",sans-serif; font-size:10px; letter-spacing:.02em; }
+.ticket-score strong { margin-top:3px; color:#fff5df; font-size:18px; }
 .ticket-poster { position:relative; width:100%; aspect-ratio:2/3; overflow:hidden; background:#242729; border-bottom:2px dashed #a89d88; }
 .ticket-poster img { display:block; width:100%; height:100%; object-fit:cover; }
 .poster-placeholder { width:100%; height:100%; display:grid; place-items:center; padding:24px; color:#8f897e; background:repeating-linear-gradient(135deg,#2b2e30 0 12px,#25282a 12px 24px); text-align:center; }
 .poster-placeholder span { font:600 11px/1.6 "IBM Plex Mono",monospace; letter-spacing:.14em; }
-.ticket-body { position:relative; display:flex; min-height:390px; flex-direction:column; padding:25px 21px 22px; }
+.ticket-body { position:relative; display:flex; min-height:390px; flex-direction:column; padding:25px 21px 22px; background-color:var(--paper); background-image:radial-gradient(circle at 18% 22%,rgba(95,71,40,.045) 0 1px,transparent 1.4px),repeating-linear-gradient(0deg,rgba(98,74,43,.018) 0 1px,transparent 1px 5px); background-size:17px 19px,100% 5px; }
 .ticket-body::before,.ticket-body::after { content:""; position:absolute; top:0; width:18px; height:18px; background:var(--bg); border-radius:50%; transform:translateY(-50%); }
 .ticket-body::before { left:-10px; }
 .ticket-body::after { right:-10px; }
@@ -90,10 +91,14 @@ textarea { resize:vertical; }
 .ticket-reason { margin-bottom:26px; font-size:14px; line-height:1.7; }
 .ticket-providers { margin-top:auto; padding-top:18px; border-top:1px dashed #9f9582; }
 .ticket-providers h4 { margin:0 0 10px; color:#575147; font-size:12px; line-height:1.5; }
-.ticket-providers ul { display:flex; flex-wrap:wrap; gap:7px; margin:0; padding:0; list-style:none; }
-.ticket-providers li { font-size:12px; }
-.ticket-providers a,.ticket-providers li>span { display:inline-flex; padding:5px 9px; color:#332f29; background:#d7ccb4; border:1px solid #b8aa8e; }
-.ticket-providers a:hover { color:#fff; background:#9d342d; border-color:#9d342d; }
+.ticket-providers ul { display:grid; gap:7px; margin:0; padding:0; list-style:none; }
+.ticket-providers li { min-width:0; font-size:12px; }
+.provider-option { width:100%; min-height:39px; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:7px 9px; color:#332f29; background:rgba(255,255,255,.28); border:1px solid #b8aa8e; }
+.provider-logo { display:block; width:auto; max-width:86px; height:21px; object-fit:contain; object-position:left center; }
+.provider-name { overflow:hidden; font-weight:700; text-overflow:ellipsis; white-space:nowrap; }
+.provider-type { flex:none; padding:2px 6px; color:#6c2927; background:#eadac0; border:1px solid #c9b493; font-size:10px; font-weight:700; }
+.ticket-providers a:hover { color:#fff; background:#7a3033; border-color:#63272a; }
+.ticket-providers a:hover .provider-type { color:#fff4df; background:#512023; border-color:#9e5a5d; }
 .ticket-providers a:focus-visible { outline:3px solid var(--red); outline-offset:2px; }
 .provider-empty { margin:0; color:#776f62; font-size:12px; line-height:1.55; }
 .faq { background:var(--paper); color:var(--ink); }

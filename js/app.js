@@ -91,21 +91,40 @@ function renderWatchProviders(providers) {
     const typeLabel = providerTypeLabels[rawType.toLowerCase()] || rawType || '이용 정보 확인';
     const label = `${name} · ${typeLabel}`;
     const safeLink = getSafeExternalUrl(provider.link);
+    const safeLogoUrl = getSafeExternalUrl(provider.logo_url);
+    const providerContent = safeLink ? document.createElement('a') : document.createElement('span');
+    providerContent.className = 'provider-option';
 
     if (safeLink) {
-      const link = document.createElement('a');
-      link.href = safeLink;
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
-      link.textContent = label;
-      link.setAttribute('aria-label', `${label} 페이지 열기 (새 탭)`);
-      item.append(link);
-    } else {
-      const text = document.createElement('span');
-      text.textContent = label;
-      item.append(text);
+      providerContent.href = safeLink;
+      providerContent.target = '_blank';
+      providerContent.rel = 'noopener noreferrer';
+      providerContent.setAttribute('aria-label', `${label} 페이지 열기 (새 탭)`);
     }
 
+    const providerName = document.createElement('span');
+    providerName.className = 'provider-name';
+    providerName.textContent = name;
+
+    if (safeLogoUrl) {
+      const logo = document.createElement('img');
+      logo.className = 'provider-logo';
+      logo.src = safeLogoUrl;
+      logo.alt = `${name} 로고`;
+      logo.loading = 'lazy';
+      logo.addEventListener('error', () => {
+        logo.replaceWith(providerName);
+      }, { once: true });
+      providerContent.append(logo);
+    } else {
+      providerContent.append(providerName);
+    }
+
+    const typeBadge = document.createElement('span');
+    typeBadge.className = 'provider-type';
+    typeBadge.textContent = typeLabel;
+    providerContent.append(typeBadge);
+    item.append(providerContent);
     providerList.append(item);
   });
   providerArea.append(providerList);
@@ -120,21 +139,23 @@ function createMovieTicket(movie, index) {
   const country = typeof movie.country === 'string' && movie.country.trim()
     ? movie.country.trim().toUpperCase()
     : 'GL';
-  const ticketPrefix = country === 'KR' ? 'KR' : 'GL';
+  const ticketLabel = country === 'KR' ? 'LOCAL PICK' : 'GLOBAL PICK';
 
   const ticketHeader = document.createElement('header');
   ticketHeader.className = 'ticket-header';
 
   const ticketNumber = document.createElement('span');
   ticketNumber.className = 'ticket-number';
-  ticketNumber.textContent = `${ticketPrefix}-${String(index + 1).padStart(2, '0')}`;
+  ticketNumber.textContent = `${ticketLabel} ${String(index + 1).padStart(2, '0')}`;
 
   const score = document.createElement('p');
   score.className = 'ticket-score';
-  score.append('AI MATCH ');
+  const scoreLabel = document.createElement('span');
+  scoreLabel.className = 'ticket-score-label';
+  scoreLabel.textContent = '추천 적합도';
   const scoreValue = document.createElement('strong');
-  scoreValue.textContent = String(movie.match_score ?? '-');
-  score.append(scoreValue);
+  scoreValue.textContent = `${movie.match_score ?? '-'}점`;
+  score.append(scoreLabel, scoreValue);
   ticketHeader.append(ticketNumber, score);
 
   const ticketBody = document.createElement('div');

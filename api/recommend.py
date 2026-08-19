@@ -348,6 +348,17 @@ def _extract_genres(show):
     ]
 
 
+def _extract_service_logo(service):
+    image_set = service.get("imageSet")
+    if not isinstance(image_set, dict):
+        return None
+    for image_type in ("lightThemeImage", "darkThemeImage", "whiteImage"):
+        logo_url = image_set.get(image_type)
+        if isinstance(logo_url, str) and logo_url.strip():
+            return logo_url.strip()
+    return None
+
+
 def _extract_watch_providers(show):
     streaming_options = show.get("streamingOptions")
     if not isinstance(streaming_options, dict):
@@ -380,6 +391,7 @@ def _extract_watch_providers(show):
                 "name": name.strip(),
                 "type": option_type.strip(),
                 "link": link.strip(),
+                "logo_url": _extract_service_logo(service),
             }
         )
 
