@@ -22,6 +22,7 @@ MODEL_NAME = "gemini-3.6-flash"
 MOVIE_DATA_BASE_URL = "https://api.movieofthenight.com/v4"
 MOVIE_DATA_REGION = "kr"
 MOVIE_DATA_TIMEOUT_SECONDS = 10
+GEMINI_RATE_LIMIT_BACKOFF_SECONDS = 1.5
 SERVICE_TIMEZONE = timezone(timedelta(hours=9))
 ALLOWED_VISUAL_MOODS = {
     "immersive",
@@ -127,6 +128,21 @@ def _classify_validation_error(exc):
     if "release_date" in message or "release_year" in message:
         return "release_date_invalid"
     return "response_invalid"
+
+
+def _get_gemini_error_metadata(exc):
+    code = getattr(exc, "code", None)
+    if not isinstance(code, int):
+        code = "unknown"
+
+    status = getattr(exc, "status", None)
+    if (
+        not isinstance(status, str)
+        or len(status) > 64
+        or not status.replace("_", "").isalnum()
+    ):
+        status = "unknown"
+    return code, status
 
 
 def _build_recommendation_prompt(user_input, excluded_movies=None):
@@ -283,25 +299,56 @@ def generate_movie_recommendations(
 
         generation_started_at = time.perf_counter()
         try:
-            response = client.models.generate_content(
-                model=MODEL_NAME,
-                contents=prompt + retry_note,
-                config=types.GenerateContentConfig(
-                    response_mime_type="application/json",
-                    response_json_schema=RECOMMENDATION_SCHEMA,
-                    temperature=0.8,
-                ),
-            )
+            for api_retry in range(2):
+                api_call_started_at = time.perf_counter()
+                try:
+                    response = client.models.generate_content(
+                        model=MODEL_NAME,
+                        contents=prompt + retry_note,
+                        config=types.GenerateContentConfig(
+                            response_mime_type="application/json",
+                            response_json_schema=RECOMMENDATION_SCHEMA,
+                            temperature=0.8,
+                            thinking_config=types.ThinkingConfig(thinking_level="low"),
+                        ),
+                    )
+                    break
+                except errors.APIError as exc:
+                    code, status = _get_gemini_error_metadata(exc)
+                    if code != 429 or api_retry == 1:
+                        raise
+                    _perf_log(
+                        request_id,
+                        "gemini generation_set=%s attempt=%s api_retry=1 reason=429 "
+                        "call_duration=%.2fs backoff=%.2fs code=%s status=%s",
+                        generation_set,
+                        attempt + 1,
+                        time.perf_counter() - api_call_started_at,
+                        GEMINI_RATE_LIMIT_BACKOFF_SECONDS,
+                        code,
+                        status,
+                    )
+                    time.sleep(GEMINI_RATE_LIMIT_BACKOFF_SECONDS)
         except errors.APIError as exc:
             generation_duration = time.perf_counter() - generation_started_at
+            code, status = _get_gemini_error_metadata(exc)
             _perf_log(
                 request_id,
-                "gemini generation_set=%s attempt=%s duration=%.2fs result=api_error validation=not_run",
+                "gemini generation_set=%s attempt=%s api_calls=%s duration=%.2fs "
+                "result=api_error validation=not_run code=%s status=%s",
                 generation_set,
                 attempt + 1,
+                api_retry + 1,
                 generation_duration,
+                code,
+                status,
             )
-            logging.error("Gemini API call failed: %s", type(exc).__name__)
+            logging.error(
+                "Gemini API call failed: type=%s code=%s status=%s",
+                type(exc).__name__,
+                code,
+                status,
+            )
             raise GeminiAPIError from exc
 
         generation_duration = time.perf_counter() - generation_started_at
@@ -315,9 +362,11 @@ def generate_movie_recommendations(
             )
             _perf_log(
                 request_id,
-                "gemini generation_set=%s attempt=%s duration=%.2fs result=success validation=success",
+                "gemini generation_set=%s attempt=%s api_calls=%s duration=%.2fs "
+                "result=success validation=success",
                 generation_set,
                 attempt + 1,
+                api_retry + 1,
                 generation_duration,
             )
             return recommendations
@@ -325,9 +374,11 @@ def generate_movie_recommendations(
             last_validation_error = exc
             _perf_log(
                 request_id,
-                "gemini generation_set=%s attempt=%s duration=%.2fs result=invalid validation=%s",
+                "gemini generation_set=%s attempt=%s api_calls=%s duration=%.2fs "
+                "result=invalid validation=%s",
                 generation_set,
                 attempt + 1,
+                api_retry + 1,
                 generation_duration,
                 _classify_validation_error(exc),
             )
