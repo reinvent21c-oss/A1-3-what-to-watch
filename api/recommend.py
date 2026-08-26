@@ -4,7 +4,9 @@ import json
 import logging
 import os
 import socket
+import time
 import unicodedata
+import uuid
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
@@ -107,6 +109,24 @@ class MovieDataAPIError(Exception):
 
 class MovieDataNotFoundError(Exception):
     """추천 영화와 일치하는 Movie of the Night 작품을 확정하지 못한 경우."""
+
+
+def _perf_log(request_id, message, *args):
+    if request_id:
+        logging.info("[perf:%s] " + message, request_id, *args)
+
+
+def _classify_validation_error(exc):
+    message = str(exc)
+    if "최근 1년" in message:
+        return "recent_release_missing"
+    if "한국 영화" in message:
+        return "korean_movie_missing"
+    if "중복" in message:
+        return "duplicate"
+    if "release_date" in message or "release_year" in message:
+        return "release_date_invalid"
+    return "response_invalid"
 
 
 def _build_recommendation_prompt(user_input, excluded_movies=None):
@@ -237,7 +257,13 @@ def _validate_recommendation_response(payload, include_recent_releases=False, to
     return recommendations
 
 
-def generate_movie_recommendations(user_input, client=None, excluded_movies=None):
+def generate_movie_recommendations(
+    user_input,
+    client=None,
+    excluded_movies=None,
+    request_id=None,
+    generation_set="initial",
+):
     if client is None:
         api_key = os.getenv("GEMINI_API_KEY")
         if not api_key:
@@ -255,6 +281,7 @@ def generate_movie_recommendations(user_input, client=None, excluded_movies=None
                 "모든 규칙을 다시 확인해 완전히 새로운 JSON 응답을 생성하세요."
             )
 
+        generation_started_at = time.perf_counter()
         try:
             response = client.models.generate_content(
                 model=MODEL_NAME,
@@ -266,19 +293,44 @@ def generate_movie_recommendations(user_input, client=None, excluded_movies=None
                 ),
             )
         except errors.APIError as exc:
+            generation_duration = time.perf_counter() - generation_started_at
+            _perf_log(
+                request_id,
+                "gemini generation_set=%s attempt=%s duration=%.2fs result=api_error validation=not_run",
+                generation_set,
+                attempt + 1,
+                generation_duration,
+            )
             logging.error("Gemini API call failed: %s", type(exc).__name__)
             raise GeminiAPIError from exc
 
+        generation_duration = time.perf_counter() - generation_started_at
         try:
             payload = response.parsed
             if payload is None:
                 payload = json.loads(response.text)
-            return _validate_recommendation_response(
+            recommendations = _validate_recommendation_response(
                 payload,
                 include_recent_releases=user_input.get("include_trending") is True,
             )
+            _perf_log(
+                request_id,
+                "gemini generation_set=%s attempt=%s duration=%.2fs result=success validation=success",
+                generation_set,
+                attempt + 1,
+                generation_duration,
+            )
+            return recommendations
         except (AttributeError, TypeError, ValueError, json.JSONDecodeError) as exc:
             last_validation_error = exc
+            _perf_log(
+                request_id,
+                "gemini generation_set=%s attempt=%s duration=%.2fs result=invalid validation=%s",
+                generation_set,
+                attempt + 1,
+                generation_duration,
+                _classify_validation_error(exc),
+            )
             logging.warning(
                 "Gemini response validation failed on attempt %s: %s",
                 attempt + 1,
@@ -366,7 +418,7 @@ def _select_movie_match(movie, candidates):
     return None
 
 
-def _find_movie_match(movie, api_key):
+def _find_movie_match(movie, api_key, request_id=None, movie_index=None, generation_set="initial"):
     searched_titles = set()
     for field in ("title", "original_title"):
         search_title = movie.get(field)
@@ -375,8 +427,30 @@ def _find_movie_match(movie, api_key):
             continue
         searched_titles.add(normalized_search_title)
 
-        candidates = _search_movie_data(search_title, api_key)
+        search_started_at = time.perf_counter()
+        try:
+            candidates = _search_movie_data(search_title, api_key)
+        except MovieDataAPIError:
+            _perf_log(
+                request_id,
+                "motn generation_set=%s movie=%s query=%s duration=%.2fs result=api_error",
+                generation_set,
+                movie_index,
+                field,
+                time.perf_counter() - search_started_at,
+            )
+            raise
+
         match = _select_movie_match(movie, candidates)
+        _perf_log(
+            request_id,
+            "motn generation_set=%s movie=%s query=%s duration=%.2fs result=%s",
+            generation_set,
+            movie_index,
+            field,
+            time.perf_counter() - search_started_at,
+            "matched" if match is not None else "not_found",
+        )
         if match is not None:
             return match
 
@@ -486,24 +560,99 @@ def _enrich_movie(movie, show):
     return enriched
 
 
-def enrich_movie_recommendations(recommendations):
-    api_key = os.getenv("MOVIE_OF_THE_NIGHT_API_KEY")
-    if not api_key:
-        raise MovieDataConfigurationError
+def enrich_movie_recommendations(recommendations, request_id=None, generation_set="initial"):
+    enrichment_started_at = time.perf_counter()
+    try:
+        api_key = os.getenv("MOVIE_OF_THE_NIGHT_API_KEY")
+        if not api_key:
+            raise MovieDataConfigurationError
 
-    enriched_recommendations = []
-    for movie in recommendations:
-        show = _find_movie_match(movie, api_key)
-        enriched_recommendations.append(_enrich_movie(movie, show))
-    return enriched_recommendations
+        enriched_recommendations = []
+        for movie_index, movie in enumerate(recommendations, start=1):
+            show = _find_movie_match(
+                movie,
+                api_key,
+                request_id=request_id,
+                movie_index=movie_index,
+                generation_set=generation_set,
+            )
+            enriched_recommendations.append(_enrich_movie(movie, show))
+    except MovieDataNotFoundError:
+        result = "not_found"
+        raise
+    except MovieDataAPIError:
+        result = "api_error"
+        raise
+    except MovieDataConfigurationError:
+        result = "configuration_error"
+        raise
+    except Exception:
+        result = "error"
+        raise
+    else:
+        result = "success"
+        return enriched_recommendations
+    finally:
+        _perf_log(
+            request_id,
+            "enrichment generation_set=%s duration=%.2fs result=%s",
+            generation_set,
+            time.perf_counter() - enrichment_started_at,
+            result,
+        )
 
 
-def generate_enriched_movie_recommendations(user_input):
-    recommendations = generate_movie_recommendations(user_input)
+def _generate_recommendation_set(
+    user_input,
+    generation_set,
+    request_id=None,
+    excluded_movies=None,
+):
+    set_started_at = time.perf_counter()
+    try:
+        recommendations = generate_movie_recommendations(
+            user_input,
+            excluded_movies=excluded_movies,
+            request_id=request_id,
+            generation_set=generation_set,
+        )
+    except GeminiAPIError:
+        result = "api_error"
+        raise
+    except GeminiResponseError:
+        result = "invalid"
+        raise
+    except Exception:
+        result = "error"
+        raise
+    else:
+        result = "success"
+        return recommendations
+    finally:
+        _perf_log(
+            request_id,
+            "gemini set generation_set=%s duration=%.2fs result=%s",
+            generation_set,
+            time.perf_counter() - set_started_at,
+            result,
+        )
+
+
+def generate_enriched_movie_recommendations(user_input, request_id=None):
+    recommendations = _generate_recommendation_set(
+        user_input,
+        "initial",
+        request_id=request_id,
+    )
 
     try:
-        return enrich_movie_recommendations(recommendations)
+        enriched_recommendations = enrich_movie_recommendations(
+            recommendations,
+            request_id=request_id,
+            generation_set="initial",
+        )
     except MovieDataNotFoundError:
+        _perf_log(request_id, "full recommendation retry=true")
         excluded_movies = [
             {
                 "title": movie.get("title"),
@@ -515,12 +664,24 @@ def generate_enriched_movie_recommendations(user_input):
             "Retrying recommendations after movie data match failure; excluded_count=%s",
             len(excluded_movies),
         )
+    except Exception:
+        _perf_log(request_id, "full recommendation retry=false")
+        raise
+    else:
+        _perf_log(request_id, "full recommendation retry=false")
+        return enriched_recommendations
 
-    retry_recommendations = generate_movie_recommendations(
+    retry_recommendations = _generate_recommendation_set(
         user_input,
+        "replacement",
+        request_id=request_id,
         excluded_movies=excluded_movies,
     )
-    return enrich_movie_recommendations(retry_recommendations)
+    return enrich_movie_recommendations(
+        retry_recommendations,
+        request_id=request_id,
+        generation_set="replacement",
+    )
 
 
 class handler(BaseHTTPRequestHandler):
@@ -528,6 +689,20 @@ class handler(BaseHTTPRequestHandler):
 
     def _send_json(self, status_code, payload):
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        request_started_at = getattr(self, "_perf_request_started_at", None)
+        if request_started_at is not None and not getattr(self, "_perf_request_logged", False):
+            error = payload.get("error") if isinstance(payload, dict) else None
+            status = "success" if payload.get("ok") is True else "error"
+            if isinstance(error, dict) and isinstance(error.get("code"), str):
+                status = error["code"]
+            _perf_log(
+                self._perf_request_id,
+                "request total=%.2fs status=%s http_status=%s",
+                time.perf_counter() - request_started_at,
+                status,
+                status_code,
+            )
+            self._perf_request_logged = True
         self.send_response(status_code)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
@@ -538,6 +713,11 @@ class handler(BaseHTTPRequestHandler):
         self._send_json(200, {"ok": True, "message": "추천 API가 준비되었습니다."})
 
     def do_POST(self):
+        self._perf_request_id = uuid.uuid4().hex[:8]
+        self._perf_request_started_at = time.perf_counter()
+        self._perf_request_logged = False
+        _perf_log(self._perf_request_id, "request start")
+
         content_length = self.headers.get("Content-Length")
 
         try:
@@ -586,7 +766,10 @@ class handler(BaseHTTPRequestHandler):
             return
 
         try:
-            recommendations = generate_enriched_movie_recommendations(received)
+            recommendations = generate_enriched_movie_recommendations(
+                received,
+                request_id=self._perf_request_id,
+            )
         except GeminiAPIError:
             self._send_error_json(
                 502,
