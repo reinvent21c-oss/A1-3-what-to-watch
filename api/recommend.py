@@ -22,7 +22,7 @@ MODEL_NAME = "gemini-3.6-flash"
 MOVIE_DATA_BASE_URL = "https://api.movieofthenight.com/v4"
 MOVIE_DATA_REGION = "kr"
 MOVIE_DATA_TIMEOUT_SECONDS = 10
-GEMINI_RATE_LIMIT_BACKOFF_SECONDS = 1.5
+GEMINI_RATE_LIMIT_BACKOFF_SECONDS = (2.0, 4.0)
 SERVICE_TIMEZONE = timezone(timedelta(hours=9))
 ALLOWED_VISUAL_MOODS = {
     "immersive",
@@ -299,7 +299,7 @@ def generate_movie_recommendations(
 
         generation_started_at = time.perf_counter()
         try:
-            for api_retry in range(2):
+            for api_retry in range(len(GEMINI_RATE_LIMIT_BACKOFF_SECONDS) + 1):
                 api_call_started_at = time.perf_counter()
                 try:
                     response = client.models.generate_content(
@@ -315,20 +315,22 @@ def generate_movie_recommendations(
                     break
                 except errors.APIError as exc:
                     code, status = _get_gemini_error_metadata(exc)
-                    if code != 429 or api_retry == 1:
+                    if code != 429 or api_retry == len(GEMINI_RATE_LIMIT_BACKOFF_SECONDS):
                         raise
+                    backoff_seconds = GEMINI_RATE_LIMIT_BACKOFF_SECONDS[api_retry]
                     _perf_log(
                         request_id,
-                        "gemini generation_set=%s attempt=%s api_retry=1 reason=429 "
+                        "gemini generation_set=%s attempt=%s api_retry=%s reason=429 "
                         "call_duration=%.2fs backoff=%.2fs code=%s status=%s",
                         generation_set,
                         attempt + 1,
+                        api_retry + 1,
                         time.perf_counter() - api_call_started_at,
-                        GEMINI_RATE_LIMIT_BACKOFF_SECONDS,
+                        backoff_seconds,
                         code,
                         status,
                     )
-                    time.sleep(GEMINI_RATE_LIMIT_BACKOFF_SECONDS)
+                    time.sleep(backoff_seconds)
         except errors.APIError as exc:
             generation_duration = time.perf_counter() - generation_started_at
             code, status = _get_gemini_error_metadata(exc)
