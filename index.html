@@ -74,7 +74,13 @@
               <label class="checkbox-field"><input type="checkbox" name="include_trending" /><span>최근 1년 개봉작도 추천에 포함해 주세요</span></label>
             </div>
             <p class="form-message error-message" id="error-message" role="alert" hidden></p>
-            <p class="form-message loading-message" id="loading-message" role="status" hidden>취향 티켓을 준비하고 있어요…</p>
+            <div class="form-message loading-message" id="loading-message" role="status" aria-live="polite" aria-atomic="false" hidden>
+              <strong class="loading-title">오늘의 영화 티켓을 준비하고 있어요…</strong>
+              <p class="loading-detail" id="loading-detail">취향을 살펴보고 있어요.</p>
+              <p class="loading-recent-note" id="loading-recent-note" hidden>최근 개봉작 조건을 함께 확인하면 조금 더 오래 걸릴 수 있어요.</p>
+              <p class="loading-elapsed" id="loading-elapsed" aria-hidden="true">추천 준비 중 · 0초</p>
+              <div class="cinema-progress" aria-hidden="true"><span></span></div>
+            </div>
             <button class="button button-primary submit-button" type="submit">추천받기 <span aria-hidden="true">✦</span></button>
           </form>
         </div>

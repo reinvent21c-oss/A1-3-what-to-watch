@@ -3,8 +3,13 @@ const navMenu = document.querySelector('.nav-menu');
 const form = document.querySelector('#recommend-form');
 const errorMessage = document.querySelector('#error-message');
 const loadingMessage = document.querySelector('#loading-message');
+const loadingDetail = document.querySelector('#loading-detail');
+const loadingRecentNote = document.querySelector('#loading-recent-note');
+const loadingElapsed = document.querySelector('#loading-elapsed');
 const submitButton = form.querySelector('button[type="submit"]');
 const resultContainer = document.querySelector('#result-container');
+let loadingTimerId = null;
+let loadingStartedAt = 0;
 const providerTypeLabels = {
   subscription: '구독',
   rent: '대여',
@@ -219,6 +224,46 @@ function clearPreviousRecommendations(message) {
   resultContainer.replaceChildren(createResultMessage(message));
 }
 
+function getLoadingDetail(elapsedSeconds) {
+  if (elapsedSeconds <= 5) {
+    return '취향을 살펴보고 있어요.';
+  }
+  if (elapsedSeconds <= 12) {
+    return '어울리는 영화 후보를 고르고 있어요.';
+  }
+  if (elapsedSeconds <= 24) {
+    return '영화 정보와 시청처를 함께 확인하고 있어요.';
+  }
+  if (elapsedSeconds <= 44) {
+    return '조금 더 꼼꼼히 추천을 확인하고 있어요.';
+  }
+  return '좋은 추천을 위해 조금 더 시간이 걸리고 있어요.';
+}
+
+function stopLoading() {
+  if (loadingTimerId !== null) {
+    window.clearInterval(loadingTimerId);
+    loadingTimerId = null;
+  }
+  loadingMessage.hidden = true;
+}
+
+function startLoading(includeRecentReleases) {
+  stopLoading();
+  loadingStartedAt = Date.now();
+
+  const updateLoading = () => {
+    const elapsedSeconds = Math.floor((Date.now() - loadingStartedAt) / 1000);
+    loadingDetail.textContent = getLoadingDetail(elapsedSeconds);
+    loadingElapsed.textContent = `추천 준비 중 · ${elapsedSeconds}초`;
+    loadingRecentNote.hidden = !includeRecentReleases || elapsedSeconds < 13;
+  };
+
+  updateLoading();
+  loadingMessage.hidden = false;
+  loadingTimerId = window.setInterval(updateLoading, 1000);
+}
+
 navToggle.addEventListener('click', () => {
   const isOpen = navToggle.getAttribute('aria-expanded') === 'true';
   navToggle.setAttribute('aria-expanded', String(!isOpen));
@@ -234,8 +279,8 @@ navMenu.addEventListener('click', (event) => {
 
 form.addEventListener('submit', async (event) => {
   event.preventDefault();
+  stopLoading();
   errorMessage.hidden = true;
-  loadingMessage.hidden = true;
 
   if (!form.checkValidity()) {
     errorMessage.textContent = '현재 기분과 선호 장르를 선택해 주세요.';
@@ -256,8 +301,7 @@ form.addEventListener('submit', async (event) => {
     include_trending: formData.get('include_trending') === 'on',
   };
 
-  loadingMessage.textContent = '추천 요청을 보내고 있습니다...';
-  loadingMessage.hidden = false;
+  startLoading(requestData.include_trending);
   submitButton.disabled = true;
   form.setAttribute('aria-busy', 'true');
   clearPreviousRecommendations('새 추천 티켓을 준비하고 있습니다.');
@@ -295,7 +339,7 @@ form.addEventListener('submit', async (event) => {
       : error.message || '추천 요청 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.';
     errorMessage.hidden = false;
   } finally {
-    loadingMessage.hidden = true;
+    stopLoading();
     submitButton.disabled = false;
     form.removeAttribute('aria-busy');
   }
