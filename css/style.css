@@ -77,6 +77,7 @@ textarea { resize:vertical; }
 .empty-state small { font-size:13px; }
 .result-disclaimer { margin:18px 0 0; color:#777570; font-size:13px; text-align:right; }
 .result-success { margin:0 0 22px; color:#c7c3bb; font-size:14px; }
+.recent-release-notice { margin:-8px 0 24px; padding:12px 14px; color:#aaa69d; background:rgba(233,223,200,.06); border-left:2px solid rgba(217,181,109,.55); font-size:13px; }
 .ticket-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:24px; align-items:stretch; }
 .movie-ticket { position:relative; min-width:0; overflow:hidden; color:var(--ink); background:var(--paper); border:1px solid #bcb099; box-shadow:10px 12px 0 rgba(64,30,26,.72); }
 .ticket-header { min-height:60px; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 15px; color:#f4ead8; background:#823a32; border-bottom:1px solid #5f2925; font-family:"IBM Plex Mono",monospace; }

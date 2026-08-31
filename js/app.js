@@ -204,10 +204,18 @@ function createMovieTicket(movie, index) {
   return ticket;
 }
 
-function renderRecommendations(recommendations) {
+function renderRecommendations(recommendations, showRecentReleaseNotice = false) {
   const status = document.createElement('p');
   status.className = 'result-success';
   status.textContent = '추천 요청이 정상적으로 처리되었습니다.';
+
+  const resultElements = [status];
+  if (showRecentReleaseNotice) {
+    const notice = document.createElement('p');
+    notice.className = 'recent-release-notice';
+    notice.textContent = '최근 2년 개봉작을 우선적으로 찾았지만, 이번 추천에는 포함되지 않았습니다. 취향 적합도를 우선해 다른 작품을 추천했어요.';
+    resultElements.push(notice);
+  }
 
   const ticketGrid = document.createElement('div');
   ticketGrid.className = 'ticket-grid';
@@ -216,7 +224,7 @@ function renderRecommendations(recommendations) {
   });
 
   resultContainer.classList.add('has-results');
-  resultContainer.replaceChildren(status, ticketGrid);
+  resultContainer.replaceChildren(...resultElements, ticketGrid);
 }
 
 function clearPreviousRecommendations(message) {
@@ -330,7 +338,9 @@ form.addEventListener('submit', async (event) => {
       throw new Error('추천 결과 형식이 올바르지 않습니다. 다시 시도해 주세요.');
     }
 
-    renderRecommendations(data.recommendations);
+    const showRecentReleaseNotice = requestData.include_trending
+      && data.recent_release_included === false;
+    renderRecommendations(data.recommendations, showRecentReleaseNotice);
     document.querySelector('#results').scrollIntoView({ behavior: 'smooth' });
   } catch (error) {
     clearPreviousRecommendations('추천 결과를 표시할 수 없습니다.');
