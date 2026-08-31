@@ -206,7 +206,7 @@ function createMovieTicket(movie, index) {
 
 function renderRecommendations(recommendations, showRecentReleaseNotice = false) {
   const status = document.createElement('p');
-  status.className = 'result-success';
+  status.className = 'result-success sr-only';
   status.textContent = '추천 요청이 정상적으로 처리되었습니다.';
 
   const resultElements = [status];
