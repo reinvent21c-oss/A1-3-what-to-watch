@@ -55,16 +55,15 @@ textarea { resize:vertical; }
 .checkbox-field input { width:18px; height:18px; accent-color:var(--red); }
 .form-message { margin:20px 0 0; padding:11px 14px; font-size:14px; }
 .error-message { color:#84231d; background:#f5c6bd; }
-.loading-message { overflow:hidden; color:#4e4534; background:#d8ccb2; }
+.loading-message { overflow:hidden; padding:15px 16px 16px; color:#4e4534; background:#d8ccb2; border-left:3px solid #823a32; }
 .loading-message[hidden] { display:none; }
-.loading-title { display:block; color:#2f2920; font-size:15px; }
-.loading-detail,.loading-recent-note,.loading-elapsed { margin:5px 0 0; }
-.loading-detail { min-height:24px; }
+.loading-title { display:block; color:#6d4a3e; font:600 10px "IBM Plex Mono",monospace; letter-spacing:.12em; }
+.loading-detail,.loading-recent-note { margin:5px 0 0; }
+.loading-detail { min-height:48px; margin-top:7px; color:#2f2920; font-size:15px; font-weight:700; line-height:1.55; }
 .loading-recent-note { color:#6d4a3e; font-size:12px; }
-.loading-elapsed { color:#6f695e; font:600 11px "IBM Plex Mono",monospace; letter-spacing:.04em; }
-.cinema-progress { position:relative; height:4px; margin-top:12px; overflow:hidden; background:rgba(56,29,26,.16); }
-.cinema-progress span { position:absolute; inset:0 auto 0 -38%; width:38%; background:linear-gradient(90deg,transparent,var(--red),var(--gold),transparent); animation:cinema-progress 1.6s ease-in-out infinite; }
-@keyframes cinema-progress { to { transform:translateX(365%); } }
+.cinema-progress { position:relative; height:4px; margin-top:14px; overflow:hidden; background:rgba(56,29,26,.2); box-shadow:inset 0 0 0 1px rgba(56,29,26,.08); }
+.cinema-progress span { position:absolute; inset:0 auto 0 -42%; width:42%; background:linear-gradient(90deg,transparent 0,var(--red) 38%,var(--gold) 68%,transparent 100%); filter:drop-shadow(0 0 3px rgba(217,181,109,.5)); animation:cinema-progress 1.45s ease-in-out infinite; }
+@keyframes cinema-progress { to { transform:translateX(340%); } }
 .submit-button { width:100%; margin-top:28px; color:white; background:#171717; box-shadow:7px 7px 0 var(--red); }
 .results { min-height:600px; }
 .horizontal { max-width:none; display:flex; align-items:end; justify-content:space-between; gap:40px; }
@@ -79,7 +78,16 @@ textarea { resize:vertical; }
 .result-success { margin:0 0 22px; color:#c7c3bb; font-size:14px; }
 .recent-release-notice { margin:-8px 0 24px; padding:12px 14px; color:#aaa69d; background:rgba(233,223,200,.06); border-left:2px solid rgba(217,181,109,.55); font-size:13px; }
 .ticket-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:24px; align-items:stretch; }
-.movie-ticket { position:relative; min-width:0; overflow:hidden; color:var(--ink); background:var(--paper); border:1px solid #bcb099; box-shadow:10px 12px 0 rgba(64,30,26,.72); }
+.movie-ticket { position:relative; min-width:0; overflow:hidden; color:var(--ink); background:var(--paper); border:1px solid #bcb099; box-shadow:10px 12px 0 rgba(64,30,26,.72); animation:ticket-arrival .42s cubic-bezier(.22,.75,.3,1) both; transition:transform .24s ease,box-shadow .24s ease; }
+.movie-ticket:nth-child(2) { animation-delay:.1s; }
+.movie-ticket:nth-child(3) { animation-delay:.2s; }
+@keyframes ticket-arrival {
+  from { opacity:0; transform:translateY(16px); }
+  to { opacity:1; transform:translateY(0); }
+}
+@media (hover:hover) and (pointer:fine) {
+  .movie-ticket:hover { transform:translateY(-5px); box-shadow:12px 17px 0 rgba(64,30,26,.78),0 12px 24px rgba(0,0,0,.2); }
+}
 .ticket-header { min-height:60px; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 15px; color:#f4ead8; background:#823a32; border-bottom:1px solid #5f2925; font-family:"IBM Plex Mono",monospace; }
 .ticket-number { color:#f7e5c7; font-size:11px; font-weight:600; letter-spacing:.11em; }
 .ticket-score { display:flex; align-items:flex-end; flex-direction:column; margin:0; line-height:1.1; }
@@ -158,5 +166,7 @@ textarea { resize:vertical; }
 @media (prefers-reduced-motion:reduce) {
   html { scroll-behavior:auto; }
   * { transition:none!important; }
+  .movie-ticket { animation:none; }
+  .movie-ticket:hover { transform:none; }
   .cinema-progress span { inset:0; width:100%; animation:none; background:linear-gradient(90deg,rgba(239,91,76,.35),var(--red),rgba(217,181,109,.45)); }
 }

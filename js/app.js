@@ -5,7 +5,6 @@ const errorMessage = document.querySelector('#error-message');
 const loadingMessage = document.querySelector('#loading-message');
 const loadingDetail = document.querySelector('#loading-detail');
 const loadingRecentNote = document.querySelector('#loading-recent-note');
-const loadingElapsed = document.querySelector('#loading-elapsed');
 const submitButton = form.querySelector('button[type="submit"]');
 const resultContainer = document.querySelector('#result-container');
 let loadingTimerId = null;
@@ -233,19 +232,19 @@ function clearPreviousRecommendations(message) {
 }
 
 function getLoadingDetail(elapsedSeconds) {
-  if (elapsedSeconds <= 5) {
+  if (elapsedSeconds <= 6) {
     return '취향을 살펴보고 있어요.';
   }
-  if (elapsedSeconds <= 12) {
+  if (elapsedSeconds <= 15) {
     return '어울리는 영화 후보를 고르고 있어요.';
   }
-  if (elapsedSeconds <= 24) {
-    return '영화 정보와 시청처를 함께 확인하고 있어요.';
+  if (elapsedSeconds <= 29) {
+    return '영화 정보와 시청처를 확인하고 있어요.';
   }
-  if (elapsedSeconds <= 44) {
-    return '조금 더 꼼꼼히 추천을 확인하고 있어요.';
+  if (elapsedSeconds <= 49) {
+    return '좋은 추천을 위해 조금 더 확인하고 있어요. 조금만 더 기다려 주세요.';
   }
-  return '좋은 추천을 위해 조금 더 시간이 걸리고 있어요.';
+  return 'COMING SOON — 오늘의 영화 티켓을 준비하고 있어요. 조금만 더 기다려 주세요. 🎬';
 }
 
 function stopLoading() {
@@ -263,7 +262,6 @@ function startLoading(includeRecentReleases) {
   const updateLoading = () => {
     const elapsedSeconds = Math.floor((Date.now() - loadingStartedAt) / 1000);
     loadingDetail.textContent = getLoadingDetail(elapsedSeconds);
-    loadingElapsed.textContent = `추천 준비 중 · ${elapsedSeconds}초`;
     loadingRecentNote.hidden = !includeRecentReleases || elapsedSeconds < 13;
   };
 
