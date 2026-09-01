@@ -9,6 +9,7 @@ const submitButton = form.querySelector('button[type="submit"]');
 const resultContainer = document.querySelector('#result-container');
 let loadingTimerId = null;
 let loadingStartedAt = 0;
+let ticketEntranceObserver = null;
 const providerTypeLabels = {
   subscription: '구독',
   rent: '대여',
@@ -213,6 +214,34 @@ function createMovieTicket(movie, index) {
   return ticketEnter;
 }
 
+function revealTicketsWhenVisible(ticketGrid) {
+  const firstTicket = ticketGrid.querySelector('.ticket-enter');
+  const revealTickets = () => {
+    window.requestAnimationFrame(() => {
+      ticketGrid.classList.add('is-revealing');
+    });
+  };
+
+  if (!('IntersectionObserver' in window)) {
+    revealTickets();
+    return;
+  }
+
+  ticketEntranceObserver?.disconnect();
+  const observer = new IntersectionObserver((entries) => {
+    if (entries.some((entry) => entry.isIntersecting)) {
+      observer.disconnect();
+      if (ticketEntranceObserver === observer) {
+        ticketEntranceObserver = null;
+      }
+      revealTickets();
+    }
+  }, { threshold: 0.1 });
+
+  ticketEntranceObserver = observer;
+  ticketEntranceObserver.observe(firstTicket || ticketGrid);
+}
+
 function renderRecommendations(recommendations, showRecentReleaseNotice = false) {
   const status = document.createElement('p');
   status.className = 'result-success sr-only';
@@ -234,9 +263,12 @@ function renderRecommendations(recommendations, showRecentReleaseNotice = false)
 
   resultContainer.classList.add('has-results');
   resultContainer.replaceChildren(...resultElements, ticketGrid);
+  revealTicketsWhenVisible(ticketGrid);
 }
 
 function clearPreviousRecommendations(message) {
+  ticketEntranceObserver?.disconnect();
+  ticketEntranceObserver = null;
   resultContainer.classList.remove('has-results');
   resultContainer.replaceChildren(createResultMessage(message));
 }
@@ -349,7 +381,10 @@ form.addEventListener('submit', async (event) => {
     const showRecentReleaseNotice = requestData.include_trending
       && data.recent_release_included === false;
     renderRecommendations(data.recommendations, showRecentReleaseNotice);
-    document.querySelector('#results').scrollIntoView({ behavior: 'smooth' });
+    const scrollBehavior = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      ? 'auto'
+      : 'smooth';
+    document.querySelector('#results').scrollIntoView({ behavior: scrollBehavior });
   } catch (error) {
     clearPreviousRecommendations('추천 결과를 표시할 수 없습니다.');
     errorMessage.textContent = error instanceof TypeError
