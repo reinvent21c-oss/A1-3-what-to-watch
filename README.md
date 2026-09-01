@@ -4,6 +4,10 @@
 
 - Production: [https://a1-3-what-to-watch.vercel.app/](https://a1-3-what-to-watch.vercel.app/)
 
+## 프로젝트 문서
+
+- [서비스 기획서](./SERVICE_PLAN.md)
+
 ## 주요 기능
 
 ### 취향 기반 영화 추천
