@@ -295,7 +295,7 @@ form.addEventListener('submit', async (event) => {
   errorMessage.hidden = true;
 
   if (!form.checkValidity()) {
-    errorMessage.textContent = '현재 기분과 선호 장르를 선택해 주세요.';
+    errorMessage.textContent = '현재 기분, 선호 장르, 함께 보는 사람과 원하는 분위기를 선택해 주세요.';
     errorMessage.hidden = false;
     form.reportValidity();
     return;
