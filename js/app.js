@@ -5,9 +5,11 @@ const errorMessage = document.querySelector('#error-message');
 const loadingMessage = document.querySelector('#loading-message');
 const loadingDetail = document.querySelector('#loading-detail');
 const loadingRecentNote = document.querySelector('#loading-recent-note');
+const loadingDots = document.querySelector('.loading-dots');
 const submitButton = form.querySelector('button[type="submit"]');
 const resultContainer = document.querySelector('#result-container');
 let loadingTimerId = null;
+let loadingDotsTimerId = null;
 let loadingStartedAt = 0;
 let ticketEntranceObserver = null;
 const providerTypeLabels = {
@@ -294,12 +296,24 @@ function stopLoading() {
     window.clearInterval(loadingTimerId);
     loadingTimerId = null;
   }
+  if (loadingDotsTimerId !== null) {
+    window.clearInterval(loadingDotsTimerId);
+    loadingDotsTimerId = null;
+  }
+  loadingDots.textContent = '...';
   loadingMessage.hidden = true;
 }
 
 function startLoading(includeRecentReleases) {
   stopLoading();
   loadingStartedAt = Date.now();
+
+  let dotCount = 1;
+  loadingDots.textContent = '.';
+  loadingDotsTimerId = window.setInterval(() => {
+    dotCount = (dotCount % 3) + 1;
+    loadingDots.textContent = '.'.repeat(dotCount);
+  }, 500);
 
   const updateLoading = () => {
     const elapsedSeconds = Math.floor((Date.now() - loadingStartedAt) / 1000);

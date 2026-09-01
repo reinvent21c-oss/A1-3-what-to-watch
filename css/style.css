@@ -65,12 +65,7 @@ textarea { resize:vertical; }
 .film-reel-hub { fill:#512923; stroke:#ffe0a0; stroke-width:1; }
 .film-reel-marker { fill:#fff0bd; }
 .loading-title { color:#392f25; font:700 16px/1.5 "IBM Plex Mono","Noto Sans KR",monospace; letter-spacing:.015em; }
-.loading-dots { display:inline-block; width:3ch; overflow:hidden; vertical-align:bottom; white-space:nowrap; clip-path:inset(0 66% 0 0); animation:loading-dots 1.2s steps(1,end) infinite; }
-@keyframes loading-dots {
-  0%,32% { clip-path:inset(0 66% 0 0); }
-  33%,65% { clip-path:inset(0 33% 0 0); }
-  66%,100% { clip-path:inset(0 0 0 0); }
-}
+.loading-dots { display:inline-block; width:3ch; vertical-align:bottom; white-space:nowrap; }
 .loading-detail,.loading-recent-note { margin:5px 0 0; }
 .loading-detail { min-height:48px; margin-top:9px; color:#2f2920; font-size:15px; font-weight:700; line-height:1.55; }
 .loading-recent-note { color:#6d4a3e; font-size:12px; }
@@ -93,16 +88,17 @@ textarea { resize:vertical; }
 .ticket-grid.is-revealing .ticket-enter { animation:ticket-arrival .76s cubic-bezier(.2,.72,.25,1) both; }
 .ticket-grid.is-revealing .ticket-enter:nth-child(2) { animation-delay:.45s; }
 .ticket-grid.is-revealing .ticket-enter:nth-child(3) { animation-delay:.9s; }
-.movie-ticket { position:relative; width:100%; height:100%; min-width:0; overflow:hidden; color:var(--ink); background:var(--paper); border:1px solid #bcb099; box-shadow:10px 12px 0 rgba(64,30,26,.72); transition:transform .28s cubic-bezier(.2,.75,.3,1),box-shadow .28s ease,border-color .28s ease,filter .28s ease; }
+.movie-ticket { position:relative; width:100%; height:100%; min-width:0; overflow:hidden; color:var(--ink); background:var(--paper); border:1px solid #bcb099; box-shadow:10px 12px 0 rgba(64,30,26,.72); transition:transform .28s ease-out,box-shadow .28s ease-out,border-color .28s ease-out; }
 @keyframes ticket-arrival {
   from { opacity:0; transform:translateY(62px) scale(.95); }
   to { opacity:1; transform:translateY(0) scale(1); }
 }
-@media (hover:hover) and (pointer:fine) {
+@media (any-hover:hover) {
   .ticket-enter:hover { z-index:2; }
-  .movie-ticket:hover { z-index:2; transform:translateY(-12px) scale(1.035) rotateZ(-.3deg); border-color:#f0d28a; box-shadow:11px 18px 0 rgba(139,69,51,.95),0 20px 38px rgba(0,0,0,.52),0 0 18px rgba(217,181,109,.2); filter:brightness(1.055); }
+  .ticket-enter:hover .movie-ticket { transform:translateY(-17px) scale(1.02); border-color:var(--gold); box-shadow:12px 22px 0 rgba(139,69,51,.92),0 24px 42px rgba(0,0,0,.56),0 0 20px rgba(217,181,109,.22); }
+  .ticket-enter:hover .ticket-header { background-color:var(--red); }
 }
-.ticket-header { min-height:60px; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 15px; color:#f4ead8; background:#823a32; border-bottom:1px solid #5f2925; font-family:"IBM Plex Mono",monospace; }
+.ticket-header { min-height:60px; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 15px; color:#f4ead8; background:#823a32; border-bottom:1px solid #5f2925; font-family:"IBM Plex Mono",monospace; transition:background-color .28s ease-out; }
 .ticket-number { color:#f7e5c7; font-size:11px; font-weight:600; letter-spacing:.11em; }
 .ticket-score { display:flex; align-items:flex-end; flex-direction:column; margin:0; line-height:1.1; }
 .ticket-score-label { color:#dfc8b0; font-family:"Noto Sans KR",sans-serif; font-size:10px; letter-spacing:.02em; }
@@ -182,7 +178,7 @@ textarea { resize:vertical; }
   html { scroll-behavior:auto; }
   * { transition:none!important; }
   .ticket-enter,.ticket-grid.is-revealing .ticket-enter { opacity:1; transform:none; animation:none; }
-  .movie-ticket:hover { transform:none; }
+  .ticket-enter:hover .movie-ticket { transform:none; }
+  .ticket-enter:hover .ticket-header { background-color:var(--red); }
   .ticket-poster img { opacity:1; }
-  .loading-dots { clip-path:none; animation:none; }
 }
