@@ -46,13 +46,19 @@ function createMoviePoster(movie) {
   }
 
   const poster = document.createElement('img');
-  poster.src = movie.poster_url;
   poster.alt = `${movie.title} 영화 포스터`;
   poster.loading = 'lazy';
+  poster.addEventListener('load', () => {
+    poster.classList.add('is-loaded');
+  }, { once: true });
   poster.addEventListener('error', () => {
     posterFrame.replaceChildren(createPosterPlaceholder(movie.title));
   }, { once: true });
+  poster.src = movie.poster_url;
   posterFrame.append(poster);
+  if (poster.complete && poster.naturalWidth > 0) {
+    poster.classList.add('is-loaded');
+  }
   return posterFrame;
 }
 

@@ -55,15 +55,17 @@ textarea { resize:vertical; }
 .checkbox-field input { width:18px; height:18px; accent-color:var(--red); }
 .form-message { margin:20px 0 0; padding:11px 14px; font-size:14px; }
 .error-message { color:#84231d; background:#f5c6bd; }
-.loading-message { overflow:hidden; padding:15px 16px 16px; color:#4e4534; background:#d8ccb2; border-left:3px solid #823a32; }
+.loading-message { overflow:hidden; padding:17px 18px 18px; color:#4e4534; background:#d8ccb2; border-left:3px solid #823a32; }
 .loading-message[hidden] { display:none; }
+.cinema-loader { display:block; width:38px; height:38px; margin-bottom:11px; border:4px solid rgba(56,29,26,.18); border-top-color:var(--red); border-right-color:var(--gold); border-radius:50%; box-shadow:0 0 0 1px rgba(255,255,255,.2),0 0 12px rgba(239,91,76,.18); animation:cinema-loader-spin .85s linear infinite; }
+@keyframes cinema-loader-spin { to { transform:rotate(1turn); } }
 .loading-title { display:block; color:#6d4a3e; font:600 10px "IBM Plex Mono",monospace; letter-spacing:.12em; }
 .loading-detail,.loading-recent-note { margin:5px 0 0; }
 .loading-detail { min-height:48px; margin-top:7px; color:#2f2920; font-size:15px; font-weight:700; line-height:1.55; }
 .loading-recent-note { color:#6d4a3e; font-size:12px; }
-.cinema-progress { position:relative; height:4px; margin-top:14px; overflow:hidden; background:rgba(56,29,26,.2); box-shadow:inset 0 0 0 1px rgba(56,29,26,.08); }
-.cinema-progress span { position:absolute; inset:0 auto 0 -42%; width:42%; background:linear-gradient(90deg,transparent 0,var(--red) 38%,var(--gold) 68%,transparent 100%); filter:drop-shadow(0 0 3px rgba(217,181,109,.5)); animation:cinema-progress 1.45s ease-in-out infinite; }
-@keyframes cinema-progress { to { transform:translateX(340%); } }
+.cinema-progress { position:relative; height:6px; margin-top:15px; overflow:hidden; background:#756955; border:1px solid rgba(56,29,26,.34); border-radius:99px; box-shadow:inset 0 1px 2px rgba(30,18,15,.28); }
+.cinema-progress span { position:absolute; inset:-1px auto -1px -48%; width:48%; border-radius:inherit; background:linear-gradient(90deg,transparent 0,var(--red) 28%,#ff7969 48%,var(--gold) 75%,transparent 100%); box-shadow:0 0 8px rgba(239,91,76,.7),0 0 5px rgba(217,181,109,.65); animation:cinema-progress 1.25s ease-in-out infinite; }
+@keyframes cinema-progress { to { transform:translateX(315%); } }
 .submit-button { width:100%; margin-top:28px; color:white; background:#171717; box-shadow:7px 7px 0 var(--red); }
 .results { min-height:600px; }
 .horizontal { max-width:none; display:flex; align-items:end; justify-content:space-between; gap:40px; }
@@ -78,15 +80,16 @@ textarea { resize:vertical; }
 .result-success { margin:0 0 22px; color:#c7c3bb; font-size:14px; }
 .recent-release-notice { margin:-8px 0 24px; padding:12px 14px; color:#aaa69d; background:rgba(233,223,200,.06); border-left:2px solid rgba(217,181,109,.55); font-size:13px; }
 .ticket-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:24px; align-items:stretch; }
-.movie-ticket { position:relative; min-width:0; overflow:hidden; color:var(--ink); background:var(--paper); border:1px solid #bcb099; box-shadow:10px 12px 0 rgba(64,30,26,.72); animation:ticket-arrival .42s cubic-bezier(.22,.75,.3,1) both; transition:transform .24s ease,box-shadow .24s ease; }
-.movie-ticket:nth-child(2) { animation-delay:.1s; }
-.movie-ticket:nth-child(3) { animation-delay:.2s; }
+.movie-ticket { position:relative; min-width:0; overflow:hidden; color:var(--ink); background:var(--paper); border:1px solid #bcb099; box-shadow:10px 12px 0 rgba(64,30,26,.72); animation:ticket-arrival .6s cubic-bezier(.22,.75,.3,1) both; transition:transform .26s ease,box-shadow .26s ease,border-color .26s ease,filter .26s ease; }
+.movie-ticket:nth-child(2) { animation-delay:.28s; }
+.movie-ticket:nth-child(3) { animation-delay:.56s; }
 @keyframes ticket-arrival {
-  from { opacity:0; transform:translateY(16px); }
-  to { opacity:1; transform:translateY(0); }
+  from { opacity:0; transform:translateY(34px) scale(.97); }
+  to { opacity:1; transform:translateY(0) scale(1); }
 }
 @media (hover:hover) and (pointer:fine) {
-  .movie-ticket:hover { transform:translateY(-5px); box-shadow:12px 17px 0 rgba(64,30,26,.78),0 12px 24px rgba(0,0,0,.2); }
+  .movie-ticket:hover { z-index:1; transform:translateY(-11px) scale(1.025) rotateZ(-.2deg); border-color:#e2c47f; box-shadow:10px 16px 0 rgba(117,61,47,.9),0 16px 30px rgba(0,0,0,.42); filter:brightness(1.035); }
+  .movie-ticket:nth-child(even):hover { transform:translateY(-11px) scale(1.025) rotateZ(.2deg); }
 }
 .ticket-header { min-height:60px; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 15px; color:#f4ead8; background:#823a32; border-bottom:1px solid #5f2925; font-family:"IBM Plex Mono",monospace; }
 .ticket-number { color:#f7e5c7; font-size:11px; font-weight:600; letter-spacing:.11em; }
@@ -94,7 +97,8 @@ textarea { resize:vertical; }
 .ticket-score-label { color:#dfc8b0; font-family:"Noto Sans KR",sans-serif; font-size:10px; letter-spacing:.02em; }
 .ticket-score strong { margin-top:3px; color:#fff5df; font-size:18px; }
 .ticket-poster { position:relative; width:100%; aspect-ratio:2/3; overflow:hidden; background:#242729; border-bottom:2px dashed #a89d88; }
-.ticket-poster img { display:block; width:100%; height:100%; object-fit:cover; }
+.ticket-poster img { display:block; width:100%; height:100%; opacity:0; object-fit:cover; transition:opacity .38s ease; }
+.ticket-poster img.is-loaded { opacity:1; }
 .poster-placeholder { width:100%; height:100%; display:grid; place-items:center; padding:24px; color:#8f897e; background:repeating-linear-gradient(135deg,#2b2e30 0 12px,#25282a 12px 24px); text-align:center; }
 .poster-placeholder span { font:600 11px/1.6 "IBM Plex Mono",monospace; letter-spacing:.14em; }
 .ticket-body { position:relative; display:flex; min-height:390px; flex-direction:column; padding:25px 21px 22px; background-color:var(--paper); background-image:radial-gradient(circle at 18% 22%,rgba(95,71,40,.045) 0 1px,transparent 1.4px),repeating-linear-gradient(0deg,rgba(98,74,43,.018) 0 1px,transparent 1px 5px); background-size:17px 19px,100% 5px; }
@@ -168,5 +172,7 @@ textarea { resize:vertical; }
   * { transition:none!important; }
   .movie-ticket { animation:none; }
   .movie-ticket:hover { transform:none; }
+  .ticket-poster img { opacity:1; }
+  .cinema-loader { animation:none; border-color:rgba(56,29,26,.2); border-top-color:var(--red); border-right-color:var(--gold); }
   .cinema-progress span { inset:0; width:100%; animation:none; background:linear-gradient(90deg,rgba(239,91,76,.35),var(--red),rgba(217,181,109,.45)); }
 }
