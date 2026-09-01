@@ -206,7 +206,11 @@ function createMovieTicket(movie, index) {
     renderWatchProviders(movie.watch_providers),
   );
   ticket.append(ticketHeader, createMoviePoster(movie), ticketBody);
-  return ticket;
+
+  const ticketEnter = document.createElement('div');
+  ticketEnter.className = 'ticket-enter';
+  ticketEnter.append(ticket);
+  return ticketEnter;
 }
 
 function renderRecommendations(recommendations, showRecentReleaseNotice = false) {
